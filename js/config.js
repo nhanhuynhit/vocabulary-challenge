@@ -11,5 +11,5 @@ window.VC_CONFIG = {
   SUPABASE_URL: "https://nkwpqetdpwenydlrsuso.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rd3BxZXRkcHdlbnlkbHJzdXNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU3MDA1MzAsImV4cCI6MjExMTI3NjUzMH0.JPJgWFp9fJJKyhXH7ieBeri1tdiX5m1xfEuATnLEjg4",
   // Bật nút "Tiếp tục với Google" sau khi đã cấu hình Google trong Supabase.
-  GOOGLE_LOGIN: true
+  GOOGLE_LOGIN: false
 };

@@ -99,3 +99,10 @@ begin
     alter publication supabase_realtime add table public.board;
   end if;
 end $$;
+
+-- 4) Cấp quyền truy cập bảng cho người dùng đã đăng nhập.
+--    Một số dự án Supabase mới không tự cấp quyền này, khiến việc ghi bị từ chối (lỗi 42501).
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update on public.progress to authenticated;
+grant select, insert, update on public.board    to authenticated;

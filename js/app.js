@@ -171,13 +171,57 @@ function grade(w, ok){
   P.srs[w] = [box, t + INTERVAL[box], learned];
 }
 
-/* ---------- speech (the browser's own English voice) ---------- */
+/* ---------- speech: the best English voice this device offers, or the learner's own choice ---------- */
+const VOICE_KEY = "vc-voice", RATE_KEY = "vc-rate";
+let VOICES = [];
+function prefGet(k, d){ try{ return localStorage.getItem(k) || d; }catch(e){ return d; } }
+function prefSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+/* higher is better: natural / neural / premium voices first, then well-known clear voices, US English before other accents */
+function voiceScore(v){
+  const n = v.name;
+  let sc = 0;
+  if (/^en[-_]US/i.test(v.lang)) sc += 30; else if (/^en[-_](GB|AU|CA|IE|NZ)/i.test(v.lang)) sc += 18; else if (/^en/i.test(v.lang)) sc += 8;
+  if (/natural|neural/i.test(n)) sc += 60;
+  if (/premium|enhanced/i.test(n)) sc += 45;
+  if (/^Google (US|UK) English/i.test(n)) sc += 40;
+  if (/\b(Aria|Jenny|Guy|Ava|Samantha|Allison|Susan|Zoe|Evan|Nathan|Joelle|Tom|Serena|Daniel|Karen|Moira)\b/i.test(n)) sc += 20;
+  if (/\b(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Fred|Kathy|Grandma|Grandpa|Eddy|Flo|Reed|Rocko|Sandy|Shelley)\b/i.test(n)) sc -= 80;
+  return sc;
+}
+function loadVoices(){
+  try{
+    VOICES = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)).sort((a,b) => voiceScore(b) - voiceScore(a) || a.name.localeCompare(b.name));
+  }catch(e){ VOICES = []; }
+  fillVoiceMenu();
+}
+try{ loadVoices(); speechSynthesis.addEventListener("voiceschanged", loadVoices); }catch(e){}
+function pickVoice(){
+  const want = prefGet(VOICE_KEY, "");
+  return (want && VOICES.find(v => v.voiceURI === want)) || VOICES[0] || null;
+}
 function say(text){
   try{
-    const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = .9;
-    const v = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang)); if (v) u.voice = v;
+    if (!VOICES.length) loadVoices();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = pickVoice();
+    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
+    u.rate = parseFloat(prefGet(RATE_KEY, "0.9")) || .9;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }catch(e){}
+}
+function fillVoiceMenu(){
+  const sel = document.getElementById("mm-voice"); if (!sel) return;
+  const cur = (pickVoice() || {}).voiceURI || "";
+  sel.textContent = "";
+  if (!VOICES.length){ sel.append(new Option("Giọng mặc định của trình duyệt", "")); sel.disabled = true; return; }
+  sel.disabled = false;
+  VOICES.forEach((v, i) => {
+    const tag = /natural|neural|premium|enhanced/i.test(v.name) ? " · tự nhiên" : "";
+    const accent = /^en[-_]US/i.test(v.lang) ? "Mỹ" : /^en[-_]GB/i.test(v.lang) ? "Anh" : /^en[-_]AU/i.test(v.lang) ? "Úc" : v.lang;
+    sel.append(new Option((i === 0 ? "★ " : "") + v.name.replace(/^Microsoft |^Google /, "").replace(/ - English.*$/, "") + " (" + accent + ")" + tag, v.voiceURI));
+  });
+  sel.value = cur;
+  const r = document.getElementById("mm-rate"); if (r) r.value = prefGet(RATE_KEY, "0.9");
 }
 
 /* ---------- header ---------- */
@@ -787,10 +831,14 @@ async function renderRank(){
 }
 
 /* ---------- events ---------- */
+document.addEventListener("change", e => {
+  if (e.target.id === "mm-voice"){ prefSet(VOICE_KEY, e.target.value); say("Hello! This is my voice."); }
+  else if (e.target.id === "mm-rate"){ prefSet(RATE_KEY, e.target.value); say("This is my speaking speed."); }
+});
 function toggleMenu(open){
   const m = $("#me-menu"); if (!m) return;
   m.hidden = !open; $("#me").setAttribute("aria-expanded", String(open));
-  if (open){ $("#mm-msg").textContent = ""; renderMe(); }
+  if (open){ $("#mm-msg").textContent = ""; renderMe(); fillVoiceMenu(); }
 }
 document.addEventListener("click", e => {
   if (!e.target.closest(".me-wrap") && $("#me-menu") && !$("#me-menu").hidden) toggleMenu(false);
@@ -818,6 +866,7 @@ document.addEventListener("click", e => {
       renderMe(); if (tab==="rank" && !view) renderRank();
     });
   }
+  else if (act==="voice-test"){ say("Nice to meet you. Let's learn some new words today."); }
   else if (act==="rank-by"){ rankBy = a.dataset.k; renderRank(); }
   else if (act==="flip"){ if (view && view.type==="cards"){ view.flipped = !view.flipped; const f = $(".flip"); f.classList.toggle("on", view.flipped); f.setAttribute("aria-pressed", view.flipped); if (view.flipped) say(view.items[view.i].w); } }
   else if (act==="week-next"){ pickWeek = pickWeek % WEEKS.length + 1; renderLesson(); }

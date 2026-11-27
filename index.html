@@ -59,6 +59,17 @@
         <label class="mm-label" for="mm-input">Tên hiển thị trên bảng xếp hạng</label>
         <div class="mm-row"><input id="mm-input" maxlength="40" autocomplete="nickname"><button class="btn primary sm" data-act="save-name">Lưu</button></div>
         <small class="mm-msg" id="mm-msg" role="status"></small>
+        <div class="mm-sec">
+          <label class="mm-label" for="mm-voice">Giọng đọc</label>
+          <select id="mm-voice" class="mm-select"></select>
+          <div class="mm-row">
+            <select id="mm-rate" class="mm-select" aria-label="Tốc độ đọc">
+              <option value="0.75">Chậm</option><option value="0.9">Vừa</option><option value="1">Bình thường</option>
+            </select>
+            <button class="btn sm white" data-act="voice-test">▶ Nghe thử</button>
+          </div>
+          <small class="mm-hint">★ là giọng nghe rõ nhất trên thiết bị này. Giọng có chữ "tự nhiên" nghe giống người thật hơn.</small>
+        </div>
         <button class="mm-item" data-tab="rank">Bảng xếp hạng</button>
         <button class="mm-item danger" data-act="logout">Đăng xuất</button>
       </div>
