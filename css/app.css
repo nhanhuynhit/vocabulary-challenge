@@ -624,3 +624,16 @@ em.hl{font-style:normal;background:var(--marker);color:var(--ink);padding:0 3px;
 @media (max-width:760px){.hp-steps,.hp-grid{grid-template-columns:1fr}}
 @media (max-width:620px){.help-btn{width:40px;height:40px;font-size:18px}}
 @media (prefers-reduced-motion:reduce){.tour-card{animation:none}}
+
+.hp-voice h3{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;margin-bottom:6px}
+.hp-voice h3 .ic{width:24px;height:24px;color:var(--accent-2)}
+.hp-voice>p.muted{margin:0 0 14px;font-size:14.5px}
+.hp-sub{margin:18px 0 10px;font-family:var(--display);font-weight:900;font-size:16px}
+.hp-dev{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.hp-dev>div{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:#FBFDFC}
+.hp-dev b{font-family:var(--display);font-weight:900;font-size:15px}
+.hp-dev p{margin:6px 0 0;font-size:13.5px;color:#33475A;line-height:1.5}
+.mm-hint .link{font-size:11.5px;padding:0}
+#help-voice{scroll-margin-top:16px}
+@media (max-width:1060px){.hp-dev{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.hp-dev{grid-template-columns:1fr}}

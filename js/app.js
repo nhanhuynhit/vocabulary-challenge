@@ -879,7 +879,7 @@ function renderHelp(){
     ["Chọn Khó, Tạm ổn hay Dễ thì khác nhau thế nào?", "<b>Khó:</b> thẻ quay lại cuối lượt và được ôn lại ngày mai. <b>Tạm ổn:</b> giữ mức nhớ, ôn lại sau 1 ngày. <b>Dễ:</b> lên một mức nhớ, lịch ôn giãn dần ra 3, 7, 14, 30, 60 ngày. Hãy chọn thật lòng để lịch ôn đúng với trí nhớ của bạn."],
     ["Học trên điện thoại và máy tính có chung tiến độ không?", "Có. Tiến độ được lưu theo tài khoản. Bạn chỉ cần đăng nhập cùng một email trên mọi thiết bị."],
     ["Dòng trạng thái báo “mất kết nối” hoặc “chưa lưu được”?", "Tiến độ vẫn được giữ tạm trên máy bạn và sẽ tự đồng bộ khi kết nối lại. Nếu báo lỗi kéo dài, hãy chụp màn hình dòng trạng thái gửi cho người quản lý trang."],
-    ["Giọng đọc khó nghe?", "Bấm ảnh đại diện ở góc phải, vào mục <b>Giọng đọc</b> để chọn giọng khác và tốc độ. Giọng có chữ “tự nhiên” nghe giống người thật nhất, nhiều nhất trên trình duyệt Microsoft Edge."],
+    ["Giọng đọc khó nghe?", "Bấm ảnh đại diện ở góc phải, vào mục <b>Giọng đọc</b> để chọn giọng khác và tốc độ. Xem mục <b>Chọn giọng đọc</b> ở phía trên để biết cách cài thêm giọng tự nhiên cho máy của bạn."],
     ["Làm sao đổi tên hiện trên bảng xếp hạng?", "Bấm ảnh đại diện ở góc phải, sửa ô <b>Tên hiển thị</b> rồi bấm <b>Lưu</b>."],
     ["Quên mật khẩu?", "Ở trang đăng nhập, bấm <b>Quên mật khẩu?</b>, nhập email và mở link trong email để đặt mật khẩu mới."]
   ];
@@ -919,13 +919,31 @@ function renderHelp(){
         <li><b>Xếp hạng:</b> so sánh theo số từ, chuỗi ngày, số bài và từ đã vững. Bảng chỉ hiện các con số tổng.</li>
         <li><b>Ngày liên tiếp</b> tăng khi bạn học hoặc ôn ít nhất một lần mỗi ngày.</li></ul></section>
       <section class="card hp-f"><h3>${ic('<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>')}Giọng đọc &amp; phím tắt</h3><ul>
-        <li>Bấm ảnh đại diện → <b>Giọng đọc</b> để chọn giọng và tốc độ.</li>
+        <li>Bấm ảnh đại diện → <b>Giọng đọc</b> để chọn giọng và tốc độ. <button class="link" data-act="help-voice">Xem hướng dẫn chi tiết ↓</button></li>
         <li>Trên máy tính: <b>1–4</b> chọn đáp án, <b>Enter</b> kiểm tra hoặc sang câu tiếp, <b>Space</b> lật thẻ, <b>1 2 3</b> đánh giá thẻ.</li></ul></section>
       <section class="card hp-f"><h3>${ic('<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>')}Cài lên điện thoại</h3><ul>
         <li><b>iPhone (Safari):</b> bấm nút Chia sẻ → <i>Thêm vào MH chính</i>.</li>
         <li><b>Android (Chrome):</b> bấm ⋮ → <i>Thêm vào màn hình chính</i>.</li>
         <li>Biểu tượng ứng dụng sẽ nằm trên màn hình, mở nhanh như một app.</li></ul></section>
     </div>
+
+    <section class="card hp-voice" id="help-voice">
+      <h3>${ic('<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>')}Chọn giọng đọc</h3>
+      <p class="muted">Giọng đọc lấy từ chính thiết bị và trình duyệt bạn đang dùng, nên mỗi máy có danh sách giọng khác nhau. Trang tự chọn giọng nghe rõ nhất, và bạn có thể đổi bất cứ lúc nào.</p>
+      <div class="hp-steps">
+        <div class="hp-step s1"><b>1</b><div><h4>Mở mục Giọng đọc</h4><p>Bấm <b>ảnh đại diện</b> ở góc trên bên phải. Trong menu, tìm mục <b>Giọng đọc</b>.</p></div></div>
+        <div class="hp-step s2"><b>2</b><div><h4>Chọn giọng</h4><p>Mở danh sách giọng. Giọng có dấu <b>★</b> là giọng trang đề xuất. Giọng có chữ <b>“tự nhiên”</b> nghe giống người thật nhất. Chọn xong, trang đọc thử ngay.</p></div></div>
+        <div class="hp-step s3"><b>3</b><div><h4>Chỉnh tốc độ</h4><p>Chọn <b>Chậm</b>, <b>Vừa</b> hoặc <b>Bình thường</b>, rồi bấm <b>▶ Nghe thử</b>. Lựa chọn được nhớ trên thiết bị này.</p></div></div>
+      </div>
+      <h4 class="hp-sub">Muốn giọng hay hơn? Cài thêm giọng cho máy</h4>
+      <div class="hp-dev">
+        <div><b>Máy tính Windows</b><p>Dùng trình duyệt <b>Microsoft Edge</b>: có sẵn các giọng tự nhiên rất giống người thật như <i>Aria, Jenny, Guy (Natural)</i>, không cần cài thêm. Trên Chrome, chọn giọng <i>Google US English</i>.</p></div>
+        <div><b>Máy Mac</b><p>Vào <b>Cài đặt hệ thống → Trợ năng → Nội dung được đọc → Giọng hệ thống → Quản lý giọng</b>. Ở mục Tiếng Anh (Mỹ), tải giọng <i>Ava</i> hoặc <i>Samantha</i> bản <b>Nâng cao</b>.</p></div>
+        <div><b>iPhone, iPad</b><p>Vào <b>Cài đặt → Trợ năng → Nội dung được đọc → Giọng nói → Tiếng Anh</b>. Tải giọng <i>Ava</i> hoặc <i>Samantha</i> bản <b>Nâng cao</b>.</p></div>
+        <div><b>Điện thoại Android</b><p>Vào <b>Cài đặt → Hệ thống → Ngôn ngữ → Đầu ra chuyển văn bản thành giọng nói</b>. Chọn công cụ của <b>Google</b>, mở phần cài đặt và tải dữ liệu giọng <i>Tiếng Anh (Mỹ)</i>.</p></div>
+      </div>
+      <p class="hp-note muted">Cài giọng mới xong, hãy <b>đóng hẳn và mở lại trình duyệt</b> để giọng mới xuất hiện trong danh sách. Tên các mục cài đặt có thể khác đôi chút tùy phiên bản máy.</p>
+    </section>
 
     <section class="card hp-faq"><h3>Câu hỏi thường gặp</h3>
       ${faq.map(([q,a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}
@@ -957,6 +975,7 @@ document.addEventListener("click", e => {
   const a = e.target.closest("[data-act]"); if (!a) return;
   const act = a.dataset.act;
   if (act==="tour"){ openTour(); }
+  else if (act==="help-voice"){ toggleMenu(false); if (tab!=="help" || view) setTab("help"); setTimeout(() => { const v = $("#help-voice"); if (v) v.scrollIntoView({behavior:"smooth", block:"start"}); }, 60); }
   else if (act==="tour-next"){ tourStep = Math.min(TOUR.length-1, tourStep+1); drawTour(); }
   else if (act==="tour-prev"){ tourStep = Math.max(0, tourStep-1); drawTour(); }
   else if (act==="tour-skip"){ closeTour(); }
