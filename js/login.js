@@ -27,6 +27,7 @@
     $("#f-email").hidden = m === "reset";
     $("#f-password").hidden = m === "forgot";
     $("#f-password2").hidden = !(m === "signup" || m === "reset");
+    $("#f-ref").hidden = m !== "signup";
     $("#forgot-row").hidden = m !== "login";
     $(".tabs").hidden = m === "forgot" || m === "reset";
     const google = !!(window.VC_CONFIG || {}).GOOGLE_LOGIN && (m === "login" || m === "signup");
@@ -49,6 +50,7 @@
 
   function friendly(err) {
     const s = String((err && err.message) || err || "");
+    if (s === "REF_NOT_FOUND") return "Không tìm thấy mã giới thiệu này. Hãy kiểm tra lại, hoặc để trống ô này.";
     if (/invalid login credentials/i.test(s)) return "Email hoặc mật khẩu không đúng.";
     if (/email not confirmed/i.test(s)) return "Bạn chưa xác nhận email. Hãy mở hộp thư và bấm vào link xác nhận.";
     if (/already registered|already been registered|user already exists/i.test(s)) return "Email này đã có tài khoản. Hãy chuyển sang Đăng nhập.";
@@ -60,6 +62,15 @@
     return "Có lỗi xảy ra: " + s;
   }
 
+  // "ten-ab12 cd34", "AB12CD34" → "TEN-AB12CD34"; "" khi bỏ trống; null khi sai dạng
+  function normRef(v) {
+    let c = String(v || "").toUpperCase().replace(/[\s_]/g, "");
+    if (!c) return "";
+    if (/^[A-Z0-9]{8}$/.test(c)) c = "TEN-" + c;
+    else if (/^TEN[A-Z0-9]{8}$/.test(c)) c = "TEN-" + c.slice(3);
+    return /^TEN-[A-Z0-9]{8}$/.test(c) ? c : null;
+  }
+
   async function submit(e) {
     e.preventDefault();
     if (busy) return;
@@ -68,6 +79,8 @@
     if ((mode === "login" || mode === "signup" || mode === "reset") && pw.length < 6) return showMsg("Mật khẩu cần ít nhất 6 ký tự.");
     if ((mode === "signup" || mode === "reset") && pw !== pw2) return showMsg("Hai mật khẩu chưa khớp nhau.");
     if (mode === "signup" && !name) return showMsg("Vui lòng nhập tên hiển thị.");
+    const ref = mode === "signup" ? normRef($("#ref").value) : "";
+    if (ref === null) return showMsg("Mã giới thiệu có dạng TEN- và 8 ký tự, ví dụ TEN-AB12CD34. Bạn có thể để trống ô này.");
 
     busy = true; $("#submit").disabled = true; showMsg("");
     try {
@@ -76,7 +89,15 @@
         if (error) throw error;
         location.replace(appUrl);
       } else if (mode === "signup") {
-        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: name.slice(0, 40) }, emailRedirectTo: appUrl } });
+        if (ref) {
+          const { data: found, error: refErr } = await sb.rpc("ref_code_exists", { code: ref });
+          // Nếu máy chủ chưa có hàm kiểm tra (chưa chạy schema mới) thì bỏ qua bước kiểm tra
+          if (!refErr && found === false) throw new Error("REF_NOT_FOUND");
+          $("#ref").value = ref;
+        }
+        const meta = { full_name: name.slice(0, 40) };
+        if (ref) meta.ref_code = ref;
+        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: meta, emailRedirectTo: appUrl } });
         if (error) throw error;
         if (data.session) location.replace(appUrl);
         else showMsg("Đã tạo tài khoản! Hãy mở email " + email + " và bấm vào link xác nhận, rồi quay lại đăng nhập.", true);
@@ -116,7 +137,10 @@
   const recovering = /type=recovery/.test(location.hash) || /reset=1|type=recovery/.test(location.search);
   if (recovering) setMode("reset");
   else {
-    setMode(/signup/.test(location.hash) ? "signup" : "login");
+    // Link mời: login.html?ref=TEN-XXXXXXXX mở sẵn form đăng ký và điền mã
+    const invite = normRef(new URLSearchParams(location.search).get("ref"));
+    setMode(invite || /signup/.test(location.hash) ? "signup" : "login");
+    if (invite) $("#ref").value = invite;
     sb.auth.getSession().then(({ data }) => { if (data.session) location.replace(appUrl); });
   }
 })();

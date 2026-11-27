@@ -129,9 +129,12 @@ async function startSession(){
   LS_KEY = "vc-progress-" + MY_ID;
   P = Object.assign(fresh(), loadLocal() || {});
   const meta = session.user.user_metadata || {};
-  const { data: prof } = await SB.from("profiles").select("display_name, avatar_url").eq("id", MY_ID).maybeSingle();
+  let { data: prof, error: profErr } = await SB.from("profiles").select("display_name, avatar_url, ref_code").eq("id", MY_ID).maybeSingle();
+  // Máy chủ chưa chạy schema có mã giới thiệu: đọc như cũ
+  if (profErr) ({ data: prof } = await SB.from("profiles").select("display_name, avatar_url").eq("id", MY_ID).maybeSingle());
   const name = (prof && prof.display_name) || meta.full_name || meta.name || (session.user.email || "").split("@")[0];
-  ME = {id: MY_ID, email: session.user.email || "", name, avatarUrl: (prof && prof.avatar_url) || meta.avatar_url || avatarFor(MY_ID, name)};
+  ME = {id: MY_ID, email: session.user.email || "", name, avatarUrl: (prof && prof.avatar_url) || meta.avatar_url || avatarFor(MY_ID, name), refCode: (prof && prof.ref_code) || "", refCount: null};
+  if (ME.refCode) countReferrals();
   PROFILES[MY_ID] = {name: ME.name, avatarUrl: ME.avatarUrl};
   const { data: row, error } = await SB.from("progress").select("data").eq("user_id", MY_ID).maybeSingle();
   if (!error && row && row.data) P = mergeProgress(P, row.data);
@@ -140,6 +143,19 @@ async function startSession(){
   SB.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace("login.html"); });
   SB.channel("board-changes").on("postgres_changes", {event:"*", schema:"public", table:"board"}, () => scheduleBoard()).subscribe();
   return true;
+}
+async function countReferrals(){
+  const { count, error } = await SB.from("profiles").select("id", {count:"exact", head:true}).eq("referred_by", MY_ID);
+  if (!error && typeof count === "number"){ ME.refCount = count; renderMe(); }
+}
+function inviteLink(){ return new URL("login.html?ref=" + encodeURIComponent(ME.refCode), location.href).href; }
+async function copyText(text){
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (_){
+    const t = Object.assign(document.createElement("textarea"), {value: text}); t.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (_){}
+    t.remove(); return ok;
+  }
 }
 let boardTimer = null;
 function scheduleBoard(){ clearTimeout(boardTimer); boardTimer = setTimeout(loadBoard, 800); }
@@ -788,6 +804,12 @@ function renderMe(){
   $("#me").title = ($("#me-name").textContent) + " · " + sub;
   $("#mm-av").src = ME.avatarUrl; $("#mm-name").textContent = ME.name || "Bạn"; $("#mm-email").textContent = ME.email || "";
   if (document.activeElement !== $("#mm-input")) $("#mm-input").value = ME.name || "";
+  $("#mm-ref").hidden = !ME.refCode;
+  if (ME.refCode){
+    $("#mm-code").textContent = ME.refCode;
+    const n = $("#mm-ref-n");
+    if (!n.dataset.flash) n.textContent = ME.refCount ? `Bạn đã giới thiệu ${ME.refCount} người.` : "Gửi mã này cho bạn bè. Họ nhập vào ô \"Mã người giới thiệu\" khi đăng ký.";
+  }
   const h = $("#hello");
   if (ME.id){
     h.hidden = false; h.textContent = "";
@@ -874,6 +896,7 @@ function maybeTour(){ let done = "1"; try{ done = localStorage.getItem(tourKey()
 function renderHelp(){
   panel.className = "panel bare";
   const faq = [
+    ["Mã giới thiệu là gì? Tôi xem mã của mình ở đâu?", "Mỗi tài khoản có một mã riêng dạng <b>TEN-</b> và 8 ký tự, ví dụ TEN-AB12CD34. Bấm vào <b>avatar ở góc phải</b> để xem mã, bấm <b>Sao chép</b> để gửi mã, hoặc <b>Sao chép link mời</b> để gửi link đăng ký có điền sẵn mã. Bạn bè nhập mã vào ô <b>Mã người giới thiệu</b> khi đăng ký (ô này không bắt buộc). Số người bạn đã giới thiệu cũng hiện ngay dưới mã."],
     ["Tôi đã xem hết từ nhưng “Từ đã học” vẫn là 0?", "Từ chỉ được tính là đã học khi bạn làm xong phần <b>Kiểm tra nhanh &amp; hoàn thành</b> ở cuối bài. Xem từ thôi thì chưa được tính."],
     ["Vì sao Recall báo 0 từ cần ôn?", "Lượt ôn đầu tiên của một bài là <b>ngày hôm sau</b>. Nếu muốn ôn ngay trong ngày, dùng thẻ <b>Recall 7 ngày qua</b>: thẻ này có cả các từ vừa học hôm nay."],
     ["Chọn Khó, Tạm ổn hay Dễ thì khác nhau thế nào?", "<b>Khó:</b> thẻ quay lại cuối lượt và được ôn lại ngày mai. <b>Tạm ổn:</b> giữ mức nhớ, ôn lại sau 1 ngày. <b>Dễ:</b> lên một mức nhớ, lịch ôn giãn dần ra 3, 7, 14, 30, 60 ngày. Hãy chọn thật lòng để lịch ôn đúng với trí nhớ của bạn."],
@@ -989,6 +1012,14 @@ document.addEventListener("click", e => {
       ME.name = v; if (ME.avatarUrl.startsWith("data:")) ME.avatarUrl = avatarFor(MY_ID, v);
       PROFILES[MY_ID] = {name: v, avatarUrl: ME.avatarUrl}; msg.textContent = "Đã lưu tên mới.";
       renderMe(); if (tab==="rank" && !view) renderRank();
+    });
+  }
+  else if (act==="copy-code" || act==="copy-invite"){
+    const text = act==="copy-code" ? ME.refCode : inviteLink(), n = $("#mm-ref-n");
+    copyText(text).then(ok => {
+      n.dataset.flash = "1";
+      n.textContent = ok ? (act==="copy-code" ? "Đã sao chép mã " + ME.refCode + "." : "Đã sao chép link mời. Bạn bè mở link sẽ thấy sẵn mã của bạn.") : "Không sao chép được, hãy bôi đen để chép: " + text;
+      clearTimeout(n._t); n._t = setTimeout(() => { delete n.dataset.flash; renderMe(); }, 2600);
     });
   }
   else if (act==="voice-test"){ say("Nice to meet you. Let's learn some new words today."); }

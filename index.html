@@ -60,6 +60,12 @@
         <label class="mm-label" for="mm-input">Tên hiển thị trên bảng xếp hạng</label>
         <div class="mm-row"><input id="mm-input" maxlength="40" autocomplete="nickname"><button class="btn primary sm" data-act="save-name">Lưu</button></div>
         <small class="mm-msg" id="mm-msg" role="status"></small>
+        <div class="mm-sec mm-ref" id="mm-ref" hidden>
+          <span class="mm-label">Mã giới thiệu của bạn</span>
+          <div class="mm-code"><b id="mm-code"></b><button class="btn sm white" data-act="copy-code">Sao chép</button></div>
+          <button class="link" data-act="copy-invite">Sao chép link mời bạn bè</button>
+          <small class="mm-hint" id="mm-ref-n" role="status"></small>
+        </div>
         <div class="mm-sec">
           <label class="mm-label" for="mm-voice">Giọng đọc</label>
           <select id="mm-voice" class="mm-select"></select>

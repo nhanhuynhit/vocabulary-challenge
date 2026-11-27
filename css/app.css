@@ -637,3 +637,9 @@ em.hl{font-style:normal;background:var(--marker);color:var(--ink);padding:0 3px;
 #help-voice{scroll-margin-top:16px}
 @media (max-width:1060px){.hp-dev{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:620px){.hp-dev{grid-template-columns:1fr}}
+
+/* Mã giới thiệu trong menu tài khoản */
+.mm-ref{gap:6px}
+.mm-code{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-soft,#E2F5E8);border:1px dashed #9CD3B2;border-radius:12px;padding:6px 6px 6px 12px}
+.mm-code b{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:15.5px;letter-spacing:.06em;color:#0F6B3E;user-select:all}
+.mm-ref .link{align-self:flex-start;font-size:13px}

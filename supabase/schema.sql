@@ -23,17 +23,70 @@ drop policy if exists "profiles: owner can update" on public.profiles;
 create policy "profiles: owner can update" on public.profiles
   for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
--- Tự tạo hồ sơ khi có người đăng ký (lấy tên từ form đăng ký hoặc từ Google)
+-- Mã giới thiệu: mỗi tài khoản có một mã TEN-XXXXXXXX (8 ký tự ngẫu nhiên, không dùng 0 O 1 I L cho dễ đọc)
+alter table public.profiles add column if not exists ref_code text;
+alter table public.profiles add column if not exists referred_by uuid references auth.users(id) on delete set null;
+create unique index if not exists profiles_ref_code_key on public.profiles (ref_code);
+create index if not exists profiles_referred_by_idx on public.profiles (referred_by);
+
+create or replace function public.gen_ref_code()
+returns text language plpgsql volatile set search_path = public as $$
+declare
+  chars constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  code text;
+begin
+  loop
+    code := 'TEN-';
+    for i in 1..8 loop
+      code := code || substr(chars, 1 + floor(random() * length(chars))::int, 1);
+    end loop;
+    exit when not exists (select 1 from public.profiles where ref_code = code);
+  end loop;
+  return code;
+end;
+$$;
+
+create or replace function public.profiles_set_ref_code()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.ref_code is null then new.ref_code := public.gen_ref_code(); end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_ref_code on public.profiles;
+create trigger profiles_ref_code
+  before insert on public.profiles
+  for each row execute function public.profiles_set_ref_code();
+
+-- Cấp mã cho các tài khoản đã có từ trước
+update public.profiles set ref_code = public.gen_ref_code() where ref_code is null;
+
+-- Trang đăng ký dùng hàm này để kiểm tra mã người giới thiệu có tồn tại không
+create or replace function public.ref_code_exists(code text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where ref_code = upper(trim(code)));
+$$;
+revoke all on function public.ref_code_exists(text) from public;
+grant execute on function public.ref_code_exists(text) to anon, authenticated;
+
+-- Tự tạo hồ sơ khi có người đăng ký (lấy tên từ form đăng ký hoặc từ Google, và ghi nhận người giới thiệu nếu có)
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  referrer uuid;
 begin
-  insert into public.profiles (id, display_name, avatar_url)
+  select id into referrer from public.profiles
+   where ref_code = upper(trim(coalesce(new.raw_user_meta_data->>'ref_code', '')))
+   limit 1;
+  insert into public.profiles (id, display_name, avatar_url, referred_by)
   values (
     new.id,
     left(coalesce(nullif(new.raw_user_meta_data->>'full_name', ''),
                   nullif(new.raw_user_meta_data->>'name', ''),
                   split_part(new.email, '@', 1)), 40),
-    new.raw_user_meta_data->>'avatar_url'
+    new.raw_user_meta_data->>'avatar_url',
+    referrer
   )
   on conflict (id) do nothing;
   return new;
@@ -103,6 +156,10 @@ end $$;
 -- 4) Cấp quyền truy cập bảng cho người dùng đã đăng nhập.
 --    Một số dự án Supabase mới không tự cấp quyền này, khiến việc ghi bị từ chối (lỗi 42501).
 grant usage on schema public to anon, authenticated;
-grant select, insert, update on public.profiles to authenticated;
+grant select on public.profiles to authenticated;
+-- Người dùng chỉ được sửa tên và ảnh; mã giới thiệu và người giới thiệu do máy chủ quản lý.
+revoke insert, update on public.profiles from authenticated;
+grant insert (id, display_name, avatar_url) on public.profiles to authenticated;
+grant update (display_name, avatar_url) on public.profiles to authenticated;
 grant select, insert, update on public.progress to authenticated;
 grant select, insert, update on public.board    to authenticated;
