@@ -253,6 +253,7 @@ function rerender(){
   if (tab==="lesson") renderLesson();
   else if (tab==="recall") renderRecallHome();
   else if (tab==="rank") renderRank();
+  else if (tab==="help") renderHelp();
   else renderPlan();
 }
 
@@ -830,6 +831,107 @@ async function renderRank(){
   rows.forEach((r,i) => { const im = panel.querySelector(`[data-avr="${i}"]`); if (av(r)) im.src = av(r); else im.style.visibility = "hidden"; const n = panel.querySelector(`[data-nmr="${i}"]`); n.textContent = nm(r); if (r.id===MY_ID){ const y = document.createElement("span"); y.className = "you"; y.textContent = "Bạn"; n.appendChild(y); } });
 }
 
+
+/* ---------- help page + first-run tour ---------- */
+const TOUR = [
+  {ic:'<path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>',
+   t:"Bấm vào từ để học", d:"Mỗi bài có 10 từ trong đám mây từ. Bấm một từ để xem nghĩa, phiên âm, V1–V2–V3, gia đình từ và 3 câu ví dụ từ dễ đến khó. Bấm biểu tượng loa để nghe và đọc to theo."},
+  {ic:'<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+   t:"Hoàn thành bài để lưu từ", d:"Xem đủ 10 từ rồi bấm nút xanh “Kiểm tra nhanh & hoàn thành” ở cuối trang. Chỉ khi làm xong bài kiểm tra, 10 từ mới được tính là đã học và được xếp vào lịch ôn."},
+  {ic:'<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/>',
+   t:"Ôn bằng thẻ lật ở Recall", d:"Từ ngày hôm sau, vào Recall để ôn các từ đến hạn. Tự nhớ nghĩa, lật thẻ để kiểm tra, rồi chọn Khó, Tạm ổn hoặc Dễ. Trang sẽ tự xếp lịch ôn tiếp theo cho từng từ."},
+  {ic:'<path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-5 5-5 8-1-1-2-2-2-4-2 2-2 5-2 8 0 4 3 7 7 7z"/>',
+   t:"Giữ nhịp mỗi ngày", d:"Mỗi ngày khoảng 20 phút: ôn từ đến hạn trước, học bài mới sau. Theo dõi tiến độ ở Lộ trình và thi đua trên Bảng xếp hạng. Bấm nút “?” ở góc trên để xem lại hướng dẫn bất cứ lúc nào."}
+];
+let tourStep = 0;
+const tourKey = () => "vc-tour-done-" + (MY_ID || "guest");
+function openTour(){
+  tourStep = 0;
+  let el = $("#tour");
+  if (!el){
+    el = document.createElement("div"); el.id = "tour"; el.className = "tour";
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "tour-t");
+    document.body.appendChild(el);
+  }
+  el.hidden = false; drawTour();
+}
+function drawTour(){
+  const st = TOUR[tourStep], last = tourStep === TOUR.length - 1;
+  $("#tour").innerHTML = `<div class="tour-card">
+    <span class="tour-ic">${ic(st.ic)}</span>
+    <span class="tour-step">Bước ${tourStep+1} / ${TOUR.length}</span>
+    <h3 id="tour-t">${st.t}</h3><p>${st.d}</p>
+    <div class="tour-dots">${TOUR.map((_,i) => `<i class="${i===tourStep?"on":""}"></i>`).join("")}</div>
+    <div class="tour-btns">
+      ${tourStep ? `<button class="btn ghost" data-act="tour-prev">← Quay lại</button>` : `<button class="btn ghost" data-act="tour-skip">Bỏ qua</button>`}
+      <button class="btn primary" data-act="${last?"tour-skip":"tour-next"}">${last ? "Bắt đầu học" : "Tiếp →"}</button>
+    </div></div>`;
+  $("#tour .btn.primary").focus();
+}
+function closeTour(){ const el = $("#tour"); if (el) el.hidden = true; try{ localStorage.setItem(tourKey(), "1"); }catch(e){} }
+function maybeTour(){ let done = "1"; try{ done = localStorage.getItem(tourKey()); }catch(e){} if (!done) setTimeout(openTour, 600); }
+
+function renderHelp(){
+  panel.className = "panel bare";
+  const faq = [
+    ["Tôi đã xem hết từ nhưng “Từ đã học” vẫn là 0?", "Từ chỉ được tính là đã học khi bạn làm xong phần <b>Kiểm tra nhanh &amp; hoàn thành</b> ở cuối bài. Xem từ thôi thì chưa được tính."],
+    ["Vì sao Recall báo 0 từ cần ôn?", "Lượt ôn đầu tiên của một bài là <b>ngày hôm sau</b>. Nếu muốn ôn ngay trong ngày, dùng thẻ <b>Recall 7 ngày qua</b>: thẻ này có cả các từ vừa học hôm nay."],
+    ["Chọn Khó, Tạm ổn hay Dễ thì khác nhau thế nào?", "<b>Khó:</b> thẻ quay lại cuối lượt và được ôn lại ngày mai. <b>Tạm ổn:</b> giữ mức nhớ, ôn lại sau 1 ngày. <b>Dễ:</b> lên một mức nhớ, lịch ôn giãn dần ra 3, 7, 14, 30, 60 ngày. Hãy chọn thật lòng để lịch ôn đúng với trí nhớ của bạn."],
+    ["Học trên điện thoại và máy tính có chung tiến độ không?", "Có. Tiến độ được lưu theo tài khoản. Bạn chỉ cần đăng nhập cùng một email trên mọi thiết bị."],
+    ["Dòng trạng thái báo “mất kết nối” hoặc “chưa lưu được”?", "Tiến độ vẫn được giữ tạm trên máy bạn và sẽ tự đồng bộ khi kết nối lại. Nếu báo lỗi kéo dài, hãy chụp màn hình dòng trạng thái gửi cho người quản lý trang."],
+    ["Giọng đọc khó nghe?", "Bấm ảnh đại diện ở góc phải, vào mục <b>Giọng đọc</b> để chọn giọng khác và tốc độ. Giọng có chữ “tự nhiên” nghe giống người thật nhất, nhiều nhất trên trình duyệt Microsoft Edge."],
+    ["Làm sao đổi tên hiện trên bảng xếp hạng?", "Bấm ảnh đại diện ở góc phải, sửa ô <b>Tên hiển thị</b> rồi bấm <b>Lưu</b>."],
+    ["Quên mật khẩu?", "Ở trang đăng nhập, bấm <b>Quên mật khẩu?</b>, nhập email và mở link trong email để đặt mật khẩu mới."]
+  ];
+  panel.innerHTML = `
+    <div class="card hp-head">
+      <div><h2>${ic('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>')}Hướng dẫn sử dụng</h2>
+      <p class="muted">Mọi điều cần biết để học đều đặn mỗi ngày với Vocabulary Challenge.</p></div>
+      <button class="btn primary" data-act="tour">▶ Xem lại hướng dẫn nhanh</button>
+    </div>
+
+    <section class="card hp-day">
+      <h3>Mỗi ngày 20 phút</h3>
+      <div class="hp-steps">
+        <div class="hp-step s1"><b>1</b><div><h4>Ôn từ đến hạn · ~5 phút</h4><p>Vào <b>Recall</b>, chọn <i>Ôn đến hạn hôm nay</i>. Ôn trước để không quên từ cũ.</p></div></div>
+        <div class="hp-step s2"><b>2</b><div><h4>Học 1 bài mới · ~12 phút</h4><p>Ở <b>Bài học</b>, bấm từng từ trong đám mây, nghe phát âm, đọc to 3 câu ví dụ và làm bài tập nhanh.</p></div></div>
+        <div class="hp-step s3"><b>3</b><div><h4>Hoàn thành bài · ~3 phút</h4><p>Bấm <b>Kiểm tra nhanh &amp; hoàn thành</b> để lưu 10 từ vào lịch ôn.</p></div></div>
+      </div>
+      <p class="muted hp-note">Mỗi tuần 5 bài. Thứ 7 dùng <b>Recall 7 ngày qua</b> để ôn cả tuần. Nếu hôm nay có hơn 30 từ đến hạn, hãy chỉ ôn và tạm dừng bài mới.</p>
+    </section>
+
+    <div class="hp-grid">
+      <section class="card hp-f"><h3>${I.chat}Bài học</h3><ul>
+        <li>Chọn tuần bằng nút xanh bên trái, chọn bài ở các thẻ <b>Bài 1–5</b>.</li>
+        <li>Bấm từ trong đám mây để xem nghĩa, phiên âm, dạng động từ, gia đình từ và từ liên quan.</li>
+        <li>3 câu ví dụ đi từ dễ đến khó: <b>A1</b> → <b>A2</b> → <b>B1</b>.</li></ul></section>
+      <section class="card hp-f"><h3>${I.head}Bài tập nhanh</h3><ul>
+        <li>Điền từ còn thiếu vào câu, chọn 1 trong 4 đáp án là các dạng của cùng một từ.</li>
+        <li>Ô bên trái ghi kết quả 3 câu gần nhất. Bấm <b>Câu tiếp</b> để luyện từ khác.</li>
+        <li>Phần này để luyện tập, không ảnh hưởng lịch ôn.</li></ul></section>
+      <section class="card hp-f"><h3>${ic('<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/>')}Recall · thẻ lật</h3>
+        <table class="hp-t"><tr><td><span class="hp-chip hard">😓 Khó</span></td><td>Ôn lại ngay cuối lượt và ngày mai</td></tr>
+        <tr><td><span class="hp-chip ok">🤔 Tạm ổn</span></td><td>Ôn lại sau 1 ngày</td></tr>
+        <tr><td><span class="hp-chip easy">🤩 Dễ</span></td><td>Giãn lịch: 3 → 7 → 14 → 30 → 60 ngày</td></tr></table>
+        <p class="muted">Mặt trước có 3 câu ví dụ tiếng Anh, mặt sau có nghĩa và bản dịch.</p></section>
+      <section class="card hp-f"><h3>${ic('<path d="M5 20V11M12 20V5M19 20v-7"/>')}Lộ trình &amp; xếp hạng</h3><ul>
+        <li><b>Lộ trình:</b> số bài đã xong, lịch ôn 7 ngày tới, mức ghi nhớ của các từ.</li>
+        <li><b>Xếp hạng:</b> so sánh theo số từ, chuỗi ngày, số bài và từ đã vững. Bảng chỉ hiện các con số tổng.</li>
+        <li><b>Ngày liên tiếp</b> tăng khi bạn học hoặc ôn ít nhất một lần mỗi ngày.</li></ul></section>
+      <section class="card hp-f"><h3>${ic('<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>')}Giọng đọc &amp; phím tắt</h3><ul>
+        <li>Bấm ảnh đại diện → <b>Giọng đọc</b> để chọn giọng và tốc độ.</li>
+        <li>Trên máy tính: <b>1–4</b> chọn đáp án, <b>Enter</b> kiểm tra hoặc sang câu tiếp, <b>Space</b> lật thẻ, <b>1 2 3</b> đánh giá thẻ.</li></ul></section>
+      <section class="card hp-f"><h3>${ic('<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>')}Cài lên điện thoại</h3><ul>
+        <li><b>iPhone (Safari):</b> bấm nút Chia sẻ → <i>Thêm vào MH chính</i>.</li>
+        <li><b>Android (Chrome):</b> bấm ⋮ → <i>Thêm vào màn hình chính</i>.</li>
+        <li>Biểu tượng ứng dụng sẽ nằm trên màn hình, mở nhanh như một app.</li></ul></section>
+    </div>
+
+    <section class="card hp-faq"><h3>Câu hỏi thường gặp</h3>
+      ${faq.map(([q,a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}
+    </section>`;
+}
+
 /* ---------- events ---------- */
 document.addEventListener("change", e => {
   if (e.target.id === "mm-voice"){ prefSet(VOICE_KEY, e.target.value); say("Hello! This is my voice."); }
@@ -854,7 +956,11 @@ document.addEventListener("click", e => {
   const rb = e.target.closest("[data-r]"); if (rb){ rateCard(rb.dataset.r); return; }
   const a = e.target.closest("[data-act]"); if (!a) return;
   const act = a.dataset.act;
-  if (act==="me-toggle"){ toggleMenu($("#me-menu").hidden); }
+  if (act==="tour"){ openTour(); }
+  else if (act==="tour-next"){ tourStep = Math.min(TOUR.length-1, tourStep+1); drawTour(); }
+  else if (act==="tour-prev"){ tourStep = Math.max(0, tourStep-1); drawTour(); }
+  else if (act==="tour-skip"){ closeTour(); }
+  else if (act==="me-toggle"){ toggleMenu($("#me-menu").hidden); }
   else if (act==="logout"){ toggleMenu(false); SB.auth.signOut().finally(() => location.replace("login.html")); }
   else if (act==="save-name"){
     const v = $("#mm-input").value.trim().slice(0, 40), msg = $("#mm-msg");
@@ -886,6 +992,8 @@ document.addEventListener("click", e => {
   else if (act==="reset-yes"){ P = fresh(); save(); sel = null; renderStats(); renderPlan(); }
 });
 document.addEventListener("keydown", e => {
+  if ($("#tour") && !$("#tour").hidden){ if (e.key==="Escape") closeTour(); return; }
+  if (e.key==="Escape" && $("#me-menu") && !$("#me-menu").hidden){ toggleMenu(false); return; }
   if (view && view.type==="cards"){
     if (e.target.tagName==="BUTTON" && e.target.dataset.act!=="flip" && (e.key===" "||e.key==="Enter")) return;
     if (e.key===" " || e.key==="Enter"){ e.preventDefault(); $(".flip")?.click(); }
@@ -914,6 +1022,7 @@ async function main(){
   }catch(e){ panel.className = "panel"; panel.innerHTML = `<div class="empty"><h2>Không tải được bài học</h2><p>Tải lại trang để thử lại.</p></div>`; return; }
   if (!LESSONS.some(l=>l.id===P.cur)) P.cur = LESSONS[0].id;
   rerender();
+  maybeTour();
   setSave(online ? "cloud" : "retry");
   if (online){ if (P.t > 0) flush(); loadBoard(); }
   else if (P.t > 0) flush();
