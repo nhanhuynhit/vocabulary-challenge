@@ -6,6 +6,7 @@
   const loginUrl = new URL("login.html", location.href).href;
   let mode = "login";          // login | signup | forgot | reset
   let busy = false;
+  let pwShown = false;         // đang hiện mật khẩu thì không cần ô nhập lại
 
   if (!sb) { $("#setup").hidden = false; $("#auth").hidden = true; return; }
   if ((window.VC_CONFIG || {}).GOOGLE_LOGIN) { $("#or").hidden = false; $("#google").hidden = false; }
@@ -26,7 +27,7 @@
     $("#f-name").hidden = m !== "signup";
     $("#f-email").hidden = m === "reset";
     $("#f-password").hidden = m === "forgot";
-    $("#f-password2").hidden = !(m === "signup" || m === "reset");
+    $("#f-password2").hidden = !(m === "signup" || m === "reset") || pwShown;
     $("#f-ref").hidden = m !== "signup";
     $("#forgot-row").hidden = m !== "login";
     $(".tabs").hidden = m === "forgot" || m === "reset";
@@ -77,7 +78,7 @@
     const email = $("#email").value.trim(), pw = $("#password").value, pw2 = $("#password2").value, name = $("#name").value.trim();
     if (mode !== "reset" && !/^\S+@\S+\.\S+$/.test(email)) return showMsg("Vui lòng nhập email hợp lệ.");
     if ((mode === "login" || mode === "signup" || mode === "reset") && pw.length < 6) return showMsg("Mật khẩu cần ít nhất 6 ký tự.");
-    if ((mode === "signup" || mode === "reset") && pw !== pw2) return showMsg("Hai mật khẩu chưa khớp nhau.");
+    if ((mode === "signup" || mode === "reset") && !pwShown && pw !== pw2) return showMsg("Hai mật khẩu chưa khớp nhau.");
     if (mode === "signup" && !name) return showMsg("Vui lòng nhập tên hiển thị.");
     const ref = mode === "signup" ? normRef($("#ref").value) : "";
     if (ref === null) return showMsg("Mã giới thiệu có dạng TEN- và 8 ký tự, ví dụ TEN-AB12CD34. Bạn có thể để trống ô này.");
@@ -121,7 +122,8 @@
     if (e.target.closest("#back")) { setMode("login"); return; }
     if (e.target.closest("#eye")) {
       const p = $("#password"), show = p.type === "password";
-      p.type = show ? "text" : "password"; $("#eye").textContent = show ? "Ẩn" : "Hiện";
+      p.type = show ? "text" : "password"; pwShown = show;
+      $("#f-password2").hidden = !(mode === "signup" || mode === "reset") || show; $("#eye").textContent = show ? "Ẩn" : "Hiện";
       $("#eye").setAttribute("aria-label", show ? "Ẩn mật khẩu" : "Hiện mật khẩu");
       return;
     }
