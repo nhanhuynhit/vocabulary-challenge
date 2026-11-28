@@ -7,7 +7,7 @@ Các phần chính:
 - **Bài học:** đám mây từ, phiên âm, V1–V2–V3, gia đình từ, từ liên quan, 3 câu ví dụ A1/A2/B1 và bài tập nhanh
 - **Recall:** ôn bằng thẻ lật theo lịch lặp lại ngắt quãng (1, 3, 7, 14, 30, 60 ngày)
 - **Lộ trình** và **Bảng xếp hạng** (cập nhật theo thời gian thực)
-- **Mã giới thiệu:** mỗi tài khoản có mã riêng dạng `TEN-XXXXXXXX`; ô người giới thiệu khi đăng ký là tùy chọn
+- **Mã giới thiệu:** mỗi tài khoản có mã riêng gồm tên gọi viết không dấu và 8 ký tự ngẫu nhiên, ví dụ Chí Nhân → `NHAN-AB12CD34`; ô người giới thiệu khi đăng ký là tùy chọn
 - **Lưu tiến độ:** theo từng tài khoản trên máy chủ, nên dùng được trên mọi thiết bị
 
 Trang web là HTML/CSS/JS thuần, **không cần build**. Phần đăng nhập và cơ sở dữ liệu dùng **Supabase** (gói miễn phí). Bạn có thể host trên **Netlify**, **Vercel**, **Cloudflare Pages** hoặc bất kỳ host tĩnh nào.
@@ -125,7 +125,7 @@ Thêm tuần mới vào mảng `weeks` và bài mới vào mảng `lessons`, r�
 
 ## Quản lý người dùng
 
-- **Mã giới thiệu:** cột `ref_code` trong bảng `profiles`. Máy chủ tự tạo mã khi có tài khoản mới, người dùng không tự sửa được. Cột `referred_by` cho biết ai đã giới thiệu tài khoản đó.
+- **Mã giới thiệu:** cột `ref_code` trong bảng `profiles`. Máy chủ tự tạo mã khi có tài khoản mới (lấy chữ cuối của tên hiển thị, bỏ dấu, viết hoa), người dùng không tự sửa được. Mã giữ nguyên khi người dùng đổi tên. Cột `referred_by` cho biết ai đã giới thiệu tài khoản đó.
   Xem ai giới thiệu được nhiều người nhất (dán vào **SQL Editor**):
   ```sql
   select r.display_name, r.ref_code, count(*) as so_nguoi

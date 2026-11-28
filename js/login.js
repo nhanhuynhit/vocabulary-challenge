@@ -63,13 +63,13 @@
     return "Có lỗi xảy ra: " + s;
   }
 
-  // "ten-ab12 cd34", "AB12CD34" → "TEN-AB12CD34"; "" khi bỏ trống; null khi sai dạng
+  // "nhân-ab12 cd34", "NHANAB12CD34" → "NHAN-AB12CD34"; "" khi bỏ trống; null khi sai dạng
   function normRef(v) {
-    let c = String(v || "").toUpperCase().replace(/[\s_]/g, "");
+    let c = String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "D")
+      .toUpperCase().replace(/[\s_]/g, "");
     if (!c) return "";
-    if (/^[A-Z0-9]{8}$/.test(c)) c = "TEN-" + c;
-    else if (/^TEN[A-Z0-9]{8}$/.test(c)) c = "TEN-" + c.slice(3);
-    return /^TEN-[A-Z0-9]{8}$/.test(c) ? c : null;
+    if (/^[A-Z]{1,10}[A-Z0-9]{8}$/.test(c) && !c.includes("-")) c = c.slice(0, -8) + "-" + c.slice(-8);
+    return /^[A-Z]{1,10}-[A-Z0-9]{8}$/.test(c) ? c : null;
   }
 
   async function submit(e) {
@@ -81,7 +81,7 @@
     if ((mode === "signup" || mode === "reset") && !pwShown && pw !== pw2) return showMsg("Hai mật khẩu chưa khớp nhau.");
     if (mode === "signup" && !name) return showMsg("Vui lòng nhập tên hiển thị.");
     const ref = mode === "signup" ? normRef($("#ref").value) : "";
-    if (ref === null) return showMsg("Mã giới thiệu có dạng TEN- và 8 ký tự, ví dụ TEN-AB12CD34. Bạn có thể để trống ô này.");
+    if (ref === null) return showMsg("Mã giới thiệu có dạng TÊN-8 ký tự, ví dụ NHAN-AB12CD34. Bạn có thể để trống ô này.");
 
     busy = true; $("#submit").disabled = true; showMsg("");
     try {
@@ -139,7 +139,7 @@
   const recovering = /type=recovery/.test(location.hash) || /reset=1|type=recovery/.test(location.search);
   if (recovering) setMode("reset");
   else {
-    // Link mời: login.html?ref=TEN-XXXXXXXX mở sẵn form đăng ký và điền mã
+    // Link mời: login.html?ref=NHAN-XXXXXXXX mở sẵn form đăng ký và điền mã
     const invite = normRef(new URLSearchParams(location.search).get("ref"));
     setMode(invite || /signup/.test(location.hash) ? "signup" : "login");
     if (invite) $("#ref").value = invite;

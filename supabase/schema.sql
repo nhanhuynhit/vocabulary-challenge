@@ -23,20 +23,40 @@ drop policy if exists "profiles: owner can update" on public.profiles;
 create policy "profiles: owner can update" on public.profiles
   for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
--- Mã giới thiệu: mỗi tài khoản có một mã TEN-XXXXXXXX (8 ký tự ngẫu nhiên, không dùng 0 O 1 I L cho dễ đọc)
+-- Mã giới thiệu: TÊN-XXXXXXXX. TÊN là tên gọi (chữ cuối của tên hiển thị) viết hoa không dấu,
+-- ví dụ "Chí Nhân" → NHAN-AB12CD34. 8 ký tự sau ngẫu nhiên, không dùng 0 O 1 I L cho dễ đọc.
+-- Mã giữ nguyên khi người dùng đổi tên, để link mời đã gửi vẫn dùng được.
 alter table public.profiles add column if not exists ref_code text;
 alter table public.profiles add column if not exists referred_by uuid references auth.users(id) on delete set null;
 create unique index if not exists profiles_ref_code_key on public.profiles (ref_code);
 create index if not exists profiles_referred_by_idx on public.profiles (referred_by);
 
-create or replace function public.gen_ref_code()
+-- "Chí Nhân" → "NHAN"; tên không có chữ cái nào → "USER"
+create or replace function public.ref_prefix(name text)
+returns text language plpgsql immutable set search_path = public as $$
+declare
+  s text;
+  parts text[];
+begin
+  s := normalize(coalesce(name, ''), NFD);                 -- tách dấu khỏi chữ: "â" → "a" + dấu
+  s := regexp_replace(s, '[\u0300-\u036f]', '', 'g');      -- bỏ các dấu
+  s := upper(translate(s, 'Đđ', 'Dd'));                     -- "đ" không tách dấu được nên đổi riêng
+  s := trim(regexp_replace(s, '[^A-Z]+', ' ', 'g'));        -- chỉ giữ chữ cái A-Z
+  if s = '' then return 'USER'; end if;
+  parts := string_to_array(s, ' ');
+  return left(parts[array_length(parts, 1)], 10);           -- chữ cuối = tên gọi, tối đa 10 ký tự
+end;
+$$;
+
+drop function if exists public.gen_ref_code();
+create or replace function public.gen_ref_code(name text)
 returns text language plpgsql volatile set search_path = public as $$
 declare
   chars constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   code text;
 begin
   loop
-    code := 'TEN-';
+    code := public.ref_prefix(name) || '-';
     for i in 1..8 loop
       code := code || substr(chars, 1 + floor(random() * length(chars))::int, 1);
     end loop;
@@ -49,7 +69,7 @@ $$;
 create or replace function public.profiles_set_ref_code()
 returns trigger language plpgsql set search_path = public as $$
 begin
-  if new.ref_code is null then new.ref_code := public.gen_ref_code(); end if;
+  if new.ref_code is null then new.ref_code := public.gen_ref_code(new.display_name); end if;
   return new;
 end;
 $$;
@@ -59,8 +79,10 @@ create trigger profiles_ref_code
   before insert on public.profiles
   for each row execute function public.profiles_set_ref_code();
 
--- Cấp mã cho các tài khoản đã có từ trước
-update public.profiles set ref_code = public.gen_ref_code() where ref_code is null;
+-- Cấp mã cho tài khoản chưa có mã, và đổi các mã kiểu cũ TEN-XXXXXXXX sang mã theo tên
+update public.profiles set ref_code = public.gen_ref_code(display_name)
+ where ref_code is null
+    or (ref_code like 'TEN-%' and public.ref_prefix(display_name) <> 'TEN');
 
 -- Trang đăng ký dùng hàm này để kiểm tra mã người giới thiệu có tồn tại không
 create or replace function public.ref_code_exists(code text)
